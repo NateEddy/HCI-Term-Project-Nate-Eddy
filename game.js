@@ -5,7 +5,7 @@ let gameRunning = true;
 
 let scene, camera, renderer;
 let playerBall;
-let scoreText, timerText, gameOverText;
+let scoreText, timerText, gameOverText, gazeText, gazeDot;
 
 window.onload = async () => {
     await webgazer.setGazeListener((data) => {
@@ -47,6 +47,7 @@ function initGame() {
     scene.add(light);
 
     createHUD();
+    createGazeDot();
 
     window.addEventListener("keydown", (e) => {
         if (e.key.toLowerCase() === "r") resetGame();
@@ -59,6 +60,7 @@ function createHUD() {
     scoreText = document.createElement("div");
     timerText = document.createElement("div");
     gameOverText = document.createElement("div");
+    gazeText = document.createElement("div");
 
     Object.assign(scoreText.style, baseHUDStyle());
     Object.assign(timerText.style, baseHUDStyle());
@@ -71,7 +73,12 @@ function createHUD() {
         transform: "translate(-50%, -50%)",
         display: "none",
         fontFamily: "Arial",
+        textAlign: "center",
+        whiteSpace: "pre-line"
     });
+    Object.assign(gazeText.style, baseHUDStyle());
+    gazeText.style.bottom = "10px";
+    gazeText.style.left = "10px";
 
     scoreText.style.top = "10px";
     scoreText.style.left = "10px";
@@ -84,6 +91,7 @@ function createHUD() {
     document.body.appendChild(scoreText);
     document.body.appendChild(timerText);
     document.body.appendChild(gameOverText);
+    document.body.appendChild(gazeText);
 
     updateHUD();
 }
@@ -94,8 +102,20 @@ function baseHUDStyle() {
         fontSize: "24px",
         position: "absolute",
         fontFamily: "Arial",
-        zIndex: 1000,
+        zIndex: 1000
     };
+}
+
+function createGazeDot() {
+    gazeDot = document.createElement("div");
+    gazeDot.style.width = "15px";
+    gazeDot.style.height = "15px";
+    gazeDot.style.borderRadius = "50%";
+    gazeDot.style.backgroundColor = "red";
+    gazeDot.style.position = "absolute";
+    gazeDot.style.pointerEvents = "none";
+    gazeDot.style.zIndex = 1000;
+    document.body.appendChild(gazeDot);
 }
 
 function updateHUD() {
@@ -109,10 +129,8 @@ function startTimer() {
             clearInterval(interval);
             return;
         }
-
         timeLeft--;
         updateHUD();
-
         if (timeLeft <= 0) {
             gameOver();
             clearInterval(interval);
@@ -124,7 +142,6 @@ function resetGame() {
     score = 0;
     timeLeft = 30;
     gameRunning = true;
-
     gameOverText.style.display = "none";
     updateHUD();
     respawnBall();
@@ -149,18 +166,28 @@ function animate() {
         return;
     }
 
-    if (gazeX !== null) {
-        const xNorm = (gazeX / window.innerWidth) * 2 - 1;
-        const yNorm = -(gazeY / window.innerHeight) * 2 + 1;
+    if (gazeX !== null && gazeY !== null) {
+        gazeText.innerText = `Gaze: (${Math.round(gazeX)}, ${Math.round(gazeY)})`;
+        gazeDot.style.left = `${gazeX - 7.5}px`;
+        gazeDot.style.top = `${gazeY - 7.5}px`;
 
-        const gazePos = new THREE.Vector3(xNorm * 3, yNorm * 2, 0);
-        const dist = gazePos.distanceTo(playerBall.position);
+        const vector = playerBall.position.clone();
+        vector.project(camera);
 
-        if (dist < 0.3) {
+        const screenX = (vector.x + 1) / 2 * window.innerWidth;
+        const screenY = (-vector.y + 1) / 2 * window.innerHeight;
+
+        const dx = gazeX - screenX;
+        const dy = gazeY - screenY;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 80) {
             score++;
             updateHUD();
             respawnBall();
         }
+    } else {
+        gazeText.innerText = "Gaze: (not detected)";
     }
 
     renderer.render(scene, camera);
