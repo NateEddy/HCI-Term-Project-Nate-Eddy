@@ -8,17 +8,15 @@ let playerBall;
 let scoreText, timerText, gameOverText, gazeText, gazeDot;
 
 window.onload = async () => {
-    await webgazer
-        .setGazeListener(function(data, elapsedTime) {
-            if (data == null) {
-                console.log("Gaze not detected yet", elapsedTime);
-                return;
-            }
+    await webgazer.setGazeListener((data, elapsedTime) => {
+        if (data) {
             gazeX = data.x;
             gazeY = data.y;
-            console.log(`Gaze detected at (${gazeX}, ${gazeY})`);
-        })
-        .begin();
+            console.log(`Gaze: ${Math.round(gazeX)}, ${Math.round(gazeY)}`);
+        } else {
+            console.log("Gaze not detected yet. Look at the screen.");
+        }
+    }).begin();
     
     webgazer.showVideoPreview(true).showPredictionPoints(true);
 
@@ -88,11 +86,10 @@ function createHUD() {
     gazeText.style.bottom = "10px";
     gazeText.style.left = "10px";
 
-    scoreText.style.top = "10px";
-    scoreText.style.left = "10px";
-
     timerText.style.top = "10px";
     timerText.style.right = "10px";
+    scoreText.style.top = "10px";
+    scoreText.style.right = "120px";
 
     gameOverText.innerText = "GAME OVER\nPress R to Restart";
 
