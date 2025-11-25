@@ -8,13 +8,21 @@ let playerBall;
 let scoreText, timerText, gameOverText, gazeText, gazeDot;
 
 window.onload = async () => {
-    await webgazer.setGazeListener((data) => {
-        if (!data) return;
-        gazeX = data.x;
-        gazeY = data.y;
-    }).begin();
+    await webgazer
+        .setGazeListener(function(data, elapsedTime) {
+            if (data == null) {
+                console.log("Gaze not detected yet", elapsedTime);
+                return;
+            }
+            gazeX = data.x;
+            gazeY = data.y;
+            console.log(`Gaze detected at (${gazeX}, ${gazeY})`);
+        })
+        .begin();
+    
+    webgazer.showVideoPreview(true).showPredictionPoints(true);
 
-    webgazer.showVideoPreview(false).showPredictionPoints(false);
+    alert("WebGazer has started. Allow webcam access and look around to calibrate.");
 
     initGame();
     startTimer();
