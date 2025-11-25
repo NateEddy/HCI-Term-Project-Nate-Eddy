@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gaze-Controlled WebGL Game</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #111; }
+    #calibrationNotice {
+      position: absolute;
+      top: 10px; left: 10px;
+      color: white; font-size: 18px;
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="calibrationNotice">Look around the screen for calibration...</div>
+
+  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script src="game.js"></script>
+</body>
+</html>
