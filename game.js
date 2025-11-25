@@ -1,7 +1,7 @@
 let gazeX = null, gazeY = null;
 let score = 0;
 let timeLeft = 30;
-let gameRunning = true;
+let gameRunning = false;
 
 let scene, camera, renderer;
 let playerBall;
@@ -12,31 +12,67 @@ window.onload = async () => {
         if (data) {
             gazeX = data.x;
             gazeY = data.y;
-            console.log(`Gaze: ${Math.round(gazeX)}, ${Math.round(gazeY)}`);
-        } else {
-            console.log("Gaze not detected yet. Look at the screen.");
         }
     }).begin();
-    
+
     webgazer.showVideoPreview(true).showPredictionPoints(true);
+    alert("WebGazer has started. Allow webcam access and follow the blue dots to calibrate.");
+    await startCalibration();
+};
 
-    alert("WebGazer has started. Allow webcam access and look around to calibrate.");
+async function startCalibration() {
+    const points = [
+        {x: 10, y: 10}, {x: 50, y: 10}, {x: 90, y: 10},
+        {x: 10, y: 50}, {x: 50, y: 50}, {x: 90, y: 50},
+        {x: 10, y: 90}, {x: 50, y: 90}, {x: 90, y: 90}
+    ];
 
+    for (const p of points) {
+        await showCalibrationDot(p.x, p.y);
+        await new Promise(res => {
+            const end = Date.now() + 2000;
+            const interval = setInterval(() => {
+                if (gazeX && gazeY) {
+                    webgazer.recordScreenPosition(gazeX, gazeY, 'calibration');
+                }
+                if (Date.now() > end) {
+                    clearInterval(interval);
+                    res();
+                }
+            }, 50);
+        });
+    }
+
+    alert("Calibration complete! Game starting.");
     initGame();
     startTimer();
-};
+    gameRunning = true;
+}
+
+function showCalibrationDot(xPercent, yPercent) {
+    return new Promise(resolve => {
+        const dot = document.createElement("div");
+        dot.style.width = "20px";
+        dot.style.height = "20px";
+        dot.style.backgroundColor = "blue";
+        dot.style.position = "absolute";
+        dot.style.borderRadius = "50%";
+        dot.style.left = `calc(${xPercent}% - 10px)`;
+        dot.style.top = `calc(${yPercent}% - 10px)`;
+        dot.style.zIndex = 2000;
+        dot.style.cursor = "pointer";
+        dot.addEventListener("click", () => {
+            document.body.removeChild(dot);
+            resolve();
+        });
+        document.body.appendChild(dot);
+    });
+}
 
 function initGame() {
     scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-    );
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
-
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
@@ -45,7 +81,6 @@ function initGame() {
     const material = new THREE.MeshStandardMaterial({ color: 0x00ff99 });
     playerBall = new THREE.Mesh(geometry, material);
     scene.add(playerBall);
-
     respawnBall();
 
     const light = new THREE.PointLight(0xffffff, 1);
@@ -55,10 +90,7 @@ function initGame() {
     createHUD();
     createGazeDot();
 
-    window.addEventListener("keydown", (e) => {
-        if (e.key.toLowerCase() === "r") resetGame();
-    });
-
+    window.addEventListener("keydown", (e) => { if (e.key.toLowerCase() === "r") resetGame(); });
     animate();
 }
 
@@ -85,30 +117,21 @@ function createHUD() {
     Object.assign(gazeText.style, baseHUDStyle());
     gazeText.style.bottom = "10px";
     gazeText.style.left = "10px";
-
     timerText.style.top = "10px";
     timerText.style.right = "10px";
     scoreText.style.top = "10px";
     scoreText.style.right = "120px";
-
     gameOverText.innerText = "GAME OVER\nPress R to Restart";
 
     document.body.appendChild(scoreText);
     document.body.appendChild(timerText);
     document.body.appendChild(gameOverText);
     document.body.appendChild(gazeText);
-
     updateHUD();
 }
 
 function baseHUDStyle() {
-    return {
-        color: "white",
-        fontSize: "24px",
-        position: "absolute",
-        fontFamily: "Arial",
-        zIndex: 1000
-    };
+    return { color: "white", fontSize: "24px", position: "absolute", fontFamily: "Arial", zIndex: 1000 };
 }
 
 function createGazeDot() {
@@ -130,16 +153,10 @@ function updateHUD() {
 
 function startTimer() {
     const interval = setInterval(() => {
-        if (!gameRunning) {
-            clearInterval(interval);
-            return;
-        }
+        if (!gameRunning) { clearInterval(interval); return; }
         timeLeft--;
         updateHUD();
-        if (timeLeft <= 0) {
-            gameOver();
-            clearInterval(interval);
-        }
+        if (timeLeft <= 0) { gameOver(); clearInterval(interval); }
     }, 1000);
 }
 
@@ -166,10 +183,7 @@ function respawnBall() {
 function animate() {
     requestAnimationFrame(animate);
 
-    if (!gameRunning) {
-        renderer.render(scene, camera);
-        return;
-    }
+    if (!gameRunning) { renderer.render(scene, camera); return; }
 
     if (gazeX !== null && gazeY !== null) {
         gazeText.innerText = `Gaze: (${Math.round(gazeX)}, ${Math.round(gazeY)})`;
@@ -178,10 +192,8 @@ function animate() {
 
         const vector = playerBall.position.clone();
         vector.project(camera);
-
         const screenX = (vector.x + 1) / 2 * window.innerWidth;
         const screenY = (-vector.y + 1) / 2 * window.innerHeight;
-
         const dx = gazeX - screenX;
         const dy = gazeY - screenY;
         const dist = Math.hypot(dx, dy);
