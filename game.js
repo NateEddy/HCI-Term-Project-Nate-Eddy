@@ -16,7 +16,7 @@ window.onload = async () => {
     }).begin();
 
     webgazer.showVideoPreview(true).showPredictionPoints(true);
-    alert("WebGazer has started. Allow webcam access and follow the blue dots to calibrate. Click on them after you look at them");
+    alert("Allow webcam access and follow the blue dots to calibrate. Click on them after you look at them");
     await startCalibration();
 };
 
@@ -43,7 +43,7 @@ async function startCalibration() {
         });
     }
 
-    alert("Calibration complete! Game starting.");
+    alert("Game starting.");
     startGame();
     startTimer();
     gameRunning = true;
